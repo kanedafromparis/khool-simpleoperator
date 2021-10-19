@@ -1,0 +1,6 @@
+apiVersion: "io.github.shyrkaio.sample/v1"
+kind: "Tom"
+metadata:
+  name:  "tom-sample"
+spec:
+  sample: "hello"

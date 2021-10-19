@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    io.shyrka.erebus/archetype-name: "tom"
+    io.shyrka.erebus/archetype-version: "1.0-SNAPSHOT"
+  name: tom-operator-admin
+subjects:
+- kind: ServiceAccount
+  name: tom-operator
+  namespace: tom-operator
+roleRef:
+  kind: ClusterRole
+  name: tom-operator
+  apiGroup: ""
