@@ -1,7 +1,7 @@
 package io.github.shyrkaio.sample;;
 
 public class TomSpec {
-    private String version;
+    private String version="8.0";
 
     public String getVersion() {
         return version;

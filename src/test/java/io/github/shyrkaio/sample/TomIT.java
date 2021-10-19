@@ -16,6 +16,7 @@ import java.io.IOException;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -92,7 +93,9 @@ public class TomIT {
         await().atMost(2,MINUTES).untilAsserted(() -> {
             Deployment dep = client.apps().deployments().inNamespace(TEST_NS).withName(sample.getMetadata().getName()).get();
             assertThat(dep, is(notNullValue()));
+            assertThat(dep.getSpec().getReplicas(),not(0));
         });
+        
 
     }
 
