@@ -8,6 +8,7 @@ import io.fabric8.kubernetes.client.*;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.config.runtime.DefaultConfigurationService;
 import org.apache.commons.lang3.StringUtils;
+import org.hamcrest.Matchers;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,8 +17,7 @@ import java.io.IOException;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.awaitility.Awaitility.await;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
@@ -94,8 +94,19 @@ public class TomIT {
             Deployment dep = client.apps().deployments().inNamespace(TEST_NS).withName(sample.getMetadata().getName()).get();
             assertThat(dep, is(notNullValue()));
             assertThat(dep.getSpec().getReplicas(),not(0));
+
         });
-        
+
+        Deployment dep = client.apps().deployments().inNamespace(TEST_NS).withName(sample.getMetadata().getName()).get();
+        String uuid = dep.getMetadata().getUid();
+        client.apps().deployments().delete(dep);
+        await().atMost(2,MINUTES).untilAsserted(() -> {
+            Deployment dep02 = client.apps().deployments().inNamespace(TEST_NS).withName(sample.getMetadata().getName()).get();
+            assertThat(dep02, is(notNullValue()));
+            String uuid02 = dep02.getMetadata().getUid();
+            assertThat(dep02.getMetadata().getUid(), Matchers.not(equalTo(uuid)));
+        });
+
 
     }
 

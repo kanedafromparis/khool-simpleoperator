@@ -2,12 +2,16 @@ package io.github.shyrkaio.sample;
 
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.utils.Serialization;
+import io.github.shyrkaio.sample.events.DeployEvent;
+import io.github.shyrkaio.sample.events.DeployEventSource;
 import io.github.shyrkaio.sample.events.TomEventSource;
 import io.github.shyrkaio.sample.events.TomEvent;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.*;
+import io.javaoperatorsdk.operator.processing.event.EventList;
 import io.javaoperatorsdk.operator.processing.event.EventSourceManager;
 import io.javaoperatorsdk.operator.processing.event.internal.CustomResourceEvent;
 
@@ -37,15 +41,31 @@ public class TomController implements ResourceController<Tom> {
         log.info("Init");
         TomEventSource operatorEvenSource = TomEventSource.createAndRegisterWatch(kubernetesClient);
         eventSourceManager.registerEventSource("tom-event-source", operatorEvenSource);
+        DeployEventSource depEventSource = DeployEventSource.createAndRegisterWatch(kubernetesClient);
+        eventSourceManager.registerEventSource("dep-tom-event-source", depEventSource);
       }
     
       @Override
       public UpdateControl<Tom> createOrUpdateResource(Tom instance, Context<Tom> context) {
+        EventList events = context.getEvents();
         Optional<TomEvent> latestCREvent =
-            context.getEvents().getLatestOfType(TomEvent.class);
-
+                events.getLatestOfType(TomEvent.class);
+        Optional<DeployEvent> lastDep =
+                events.getLatestOfType(DeployEvent.class);
         if (instance.getMetadata() ==null){
           instance.setStatus(new TomStatus());
+        }
+
+        if (lastDep.isPresent()){
+          if(lastDep.get().getAction().equals(Watcher.Action.MODIFIED)){
+            log.info("lastDep : {}", lastDep.toString());
+            Deployment dep = kubernetesClient.apps().deployments().inNamespace(instance.getMetadata().getNamespace())
+                    .withName(instance.getMetadata().getName()).get();
+            if(dep != null) {
+              Integer replicas = dep.getStatus().getReplicas();
+              instance.getStatus().setReadyReplicas(replicas);
+            }
+          }
         }
 
         this.createOrUpdateDeployment(instance);
