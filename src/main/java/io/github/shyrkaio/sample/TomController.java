@@ -86,7 +86,7 @@ public class TomController implements ResourceController<Tom> {
     }
     existingDeployment.getSpec().getTemplate()
             .getSpec().getContainers().get(0).setImage("tomcat:"+instance.getSpec().getVersion());
-    existingDeployment.getSpec().setReplicas(1);
+      existingDeployment.getSpec().setReplicas(1);
     kubernetesClient.apps().deployments().inNamespace(ns).createOrReplace(existingDeployment);
     log.info("Creating Deployment {} in {}", existingDeployment.getMetadata().getName(), ns);
   }
