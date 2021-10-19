@@ -52,7 +52,7 @@ public class TomController implements ResourceController<Tom> {
                 events.getLatestOfType(TomEvent.class);
         Optional<DeployEvent> lastDep =
                 events.getLatestOfType(DeployEvent.class);
-        if (instance.getMetadata() ==null){
+        if (instance.getStatus() ==null){
           instance.setStatus(new TomStatus());
         }
 
@@ -62,7 +62,7 @@ public class TomController implements ResourceController<Tom> {
             Deployment dep = kubernetesClient.apps().deployments().inNamespace(instance.getMetadata().getNamespace())
                     .withName(instance.getMetadata().getName()).get();
             if(dep != null) {
-              Integer replicas = dep.getStatus().getReplicas();
+              Integer replicas = dep.getStatus().getReadyReplicas();
               instance.getStatus().setReadyReplicas(replicas);
             }
           }

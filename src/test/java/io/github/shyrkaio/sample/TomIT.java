@@ -108,6 +108,15 @@ public class TomIT {
         });
 
 
+        await().atMost(2,MINUTES).untilAsserted(() -> {
+            Tom tom = client.resources(Tom.class).inNamespace(TEST_NS).withName(sample.getMetadata().getName()).get();
+            assertThat(tom, is(notNullValue()));
+            assertThat(tom.getStatus(), is(notNullValue()));
+            assertThat(tom.getStatus().getReadyReplicas(),not(0));
+            assertThat(tom.getStatus().getReadyReplicas(),is(1));
+
+        });
+
     }
 
 }
