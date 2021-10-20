@@ -49,11 +49,14 @@ public class TomIT {
                 new ObjectMetaBuilder().withName(TEST_NS).build()).build();
 
         if (StringUtils.isBlank(System.getenv("OPERATOR_INSTALLED_IN_TEST"))) {
+            stlog.info("Create instanced test");
             // on some CI platform like github (via github-action), the operator is installed
             // into a kubernetes cluster this allows to validate the cluster role
             TomIT.operator = new Operator(client, DefaultConfigurationService.instance());
             TomIT.operator.register(new TomController(client));
             TomIT.operator.start();
+        }else{
+            stlog.info("Using installed operator");
         }
 
         cleanUp();
@@ -114,7 +117,6 @@ public class TomIT {
             assertThat(tom.getStatus(), is(notNullValue()));
             assertThat(tom.getStatus().getReadyReplicas(),not(0));
             assertThat(tom.getStatus().getReadyReplicas(),is(1));
-
         });
 
     }

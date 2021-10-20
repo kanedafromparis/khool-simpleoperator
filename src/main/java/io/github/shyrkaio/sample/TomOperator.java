@@ -6,6 +6,8 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.config.runtime.DefaultConfigurationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.takes.facets.fork.FkRegex;
 import org.takes.facets.fork.TkFork;
 import org.takes.http.Exit;
@@ -15,6 +17,8 @@ import java.io.IOException;
 
 public class TomOperator {
 
+    private static final Logger log = LoggerFactory.getLogger(TomOperator.class);
+
     public static void main(String[] args) throws IOException {
 
         Config config = new ConfigBuilder().withNamespace(null).build();
@@ -23,6 +27,7 @@ public class TomOperator {
 
         TomController tomController = new TomController(client);
         operator.register(tomController);
+        operator.start();
 
         new FtBasic(new TkFork(new FkRegex("/health", "ALL GOOD.")), 8080).start(Exit.NEVER);
     }

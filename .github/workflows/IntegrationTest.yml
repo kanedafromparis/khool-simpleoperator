@@ -1,0 +1,77 @@
+# End to end integration test which deploys the Tomcat operator to a Kubernetes
+# (Kind) cluster and creates custom resources to verify the operator's functionality
+name: Tomcat integration test
+on:
+  push:
+    branches:
+      - "*"
+jobs:
+  tomcat_integration_test:
+    runs-on: ubuntu-latest
+    env:
+      KIND_CL_NAME: tom-operator-integration-test
+      OPERATOR_NS: tom-operator
+      OPERATOR_INSTALLED_IN_TEST: tom-operator
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: clean resident local docker
+        if: ${{ env.ACT }}
+        continue-on-error: true
+        run: |
+          for DIMG in "$KIND_CL_NAME-control-plane "; do
+            docker stop $DIMG ; docker rm $DIMG ;
+          done ;
+          sleep 1
+      - name: Create Kubernetes KinD Cluster
+        uses: container-tools/kind-action@v1.5.0
+        with:
+          cluster_name: ${{ env.KIND_CL_NAME }}
+          registry: false
+
+      - name: Set up Java and Maven
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: cache
+        uses: actions/cache@v2
+        if: ${{ !env.ACT }}
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-m2
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v4
+        if: ${{ env.ACT }}
+        with:
+          maven-version: 3.8.1
+
+      - name: build jib
+        run: |
+          mvn --version
+          mvn -B package jib:dockerBuild jib:buildTar -Djib-maven-image=${{ env.KIND_CL_NAME }} --file pom.xml -DskipTests
+          kind load image-archive target/jib-image.tar --name=${{ env.KIND_CL_NAME }}
+
+      - name: Apply CRDs
+        run: kubectl apply -f target/classes/META-INF/fabric8/toms.io.github.shyrkaio.sample-v1.yml
+
+      - name: install tomcat operator
+        run: |
+          kubectl create ns ${{ env.OPERATOR_NS }}
+          mvn k8s:resource k8s:apply -Djib-maven-image=tom-operator-integration-test -Djkube.namespace=tom-operator
+          mvn k8s:resource k8s:apply -Djib-maven-image=${{ env.KIND_CL_NAME }} -Djkube.namespace=${{ env.OPERATOR_NS }}
+
+      - name: Run unit tests
+        run: |
+          export OPERATOR_INSTALLED_IN_TEST=${{ env.OPERATOR_INSTALLED_IN_TEST }}
+          mvn -B failsafe:integration-test -DOPERATOR_INSTALLED_IN_TEST=${{ env.OPERATOR_INSTALLED_IN_TEST }} --file pom.xml
+
+      - name: Dump state
+        if: ${{ failure() }}
+        run: |
+          kubectl get tom,deploy,rs,po -n tomtest -o yaml

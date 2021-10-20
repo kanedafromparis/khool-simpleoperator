@@ -12,8 +12,8 @@ rules:
   - "extensions"
   - "apps"
   resources:
-  - service/status
-  - deployment/status
+  - deployments
+  - deployments/status
   - pods/status
   verbs:
   - '*'
@@ -26,7 +26,7 @@ rules:
 - apiGroups:
   - "io.github.shyrkaio.sample"
   resources:
-  - tom
-  - tom/status
+  - toms
+  - toms/status
   verbs:
   - '*'
